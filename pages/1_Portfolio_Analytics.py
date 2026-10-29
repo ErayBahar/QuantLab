@@ -231,8 +231,13 @@ st.caption(
     "252 shared trading intervals per year; sparse or irregular overlap is flagged above."
 )
 
+st.caption(
+    "Annualized Sharpe ratio assumes a 0% risk-free rate and annualizes daily excess "
+    "return using sqrt(252)."
+)
+
 portfolio_metrics = result.metrics.loc["Configured portfolio"]
-metric_columns = st.columns(3)
+metric_columns = st.columns(4)
 metric_columns[0].metric(
     "Portfolio cumulative return",
     f"{portfolio_metrics['Cumulative return']:.2%}",
@@ -244,6 +249,11 @@ metric_columns[1].metric(
 metric_columns[2].metric(
     "Portfolio maximum drawdown",
     f"{portfolio_metrics['Maximum drawdown']:.2%}",
+)
+sharpe_ratio = portfolio_metrics["Annualized Sharpe ratio"]
+metric_columns[3].metric(
+    "Annualized Sharpe ratio",
+    f"{sharpe_ratio:.2f}" if pd.notna(sharpe_ratio) else "n/a",
 )
 
 chart_column, correlation_column = st.columns([1.35, 1.0])
@@ -269,8 +279,10 @@ st.dataframe(
         {
             "Cumulative return": "{:.2%}",
             "Annualized volatility": "{:.2%}",
+            "Annualized Sharpe ratio": "{:.2f}",
             "Maximum drawdown": "{:.2%}",
-        }
+        },
+        na_rep="n/a",
     ),
     use_container_width=True,
 )

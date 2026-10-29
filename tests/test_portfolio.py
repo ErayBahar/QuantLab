@@ -135,6 +135,63 @@ def test_annualized_volatility_uses_sample_std_and_252_intervals() -> None:
     ] == pytest.approx(expected_volatility)
 
 
+def test_annualized_sharpe_ratio_uses_zero_risk_free_rate_for_both_portfolios() -> None:
+    prices = price_frame(
+        {
+            "AAA": [100.0, 110.0, 99.0, 108.9],
+            "BBB": [100.0, 100.0, 110.0, 104.5],
+        }
+    )
+
+    result = calculate_portfolio_analytics(prices, {"AAA": 0.75, "BBB": 0.25})
+    aaa_returns = np.array([0.10, -0.10, 0.10])
+    bbb_returns = np.array([0.0, 0.10, -0.05])
+    expected_portfolio_returns = 0.75 * aaa_returns + 0.25 * bbb_returns
+    expected_equal_weight_returns = (aaa_returns + bbb_returns) / 2.0
+
+    def expected_sharpe(returns: np.ndarray) -> float:
+        return float(returns.mean() / returns.std(ddof=1) * np.sqrt(252.0))
+
+    assert result.metrics.loc[
+        "Configured portfolio", "Annualized Sharpe ratio"
+    ] == pytest.approx(expected_sharpe(expected_portfolio_returns))
+    assert result.metrics.loc[
+        "Equal weight", "Annualized Sharpe ratio"
+    ] == pytest.approx(expected_sharpe(expected_equal_weight_returns))
+
+
+def test_annualized_sharpe_ratio_is_nan_for_zero_volatility_returns() -> None:
+    prices = price_frame(
+        {
+            "AAA": [100.0, 100.0, 100.0, 100.0],
+            "BBB": [50.0, 50.0, 50.0, 50.0],
+        }
+    )
+
+    result = calculate_portfolio_analytics(prices, {"AAA": 0.5, "BBB": 0.5})
+
+    assert np.isnan(
+        result.metrics.loc["Configured portfolio", "Annualized Sharpe ratio"]
+    )
+    assert np.isnan(result.metrics.loc["Equal weight", "Annualized Sharpe ratio"])
+
+
+def test_annualized_sharpe_ratio_treats_rounding_noise_as_zero_volatility() -> None:
+    prices = price_frame(
+        {
+            "AAA": [100.0, 110.0, 121.0, 133.1],
+            "BBB": [100.0, 110.0, 121.0, 133.1],
+        }
+    )
+
+    result = calculate_portfolio_analytics(prices, {"AAA": 0.5, "BBB": 0.5})
+
+    assert np.isnan(
+        result.metrics.loc["Configured portfolio", "Annualized Sharpe ratio"]
+    )
+    assert np.isnan(result.metrics.loc["Equal weight", "Annualized Sharpe ratio"])
+
+
 def test_maximum_drawdown_uses_compounded_portfolio_equity() -> None:
     prices = price_frame(
         {

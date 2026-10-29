@@ -13,6 +13,8 @@ from quantlab.backtest import drawdown_from_equity
 
 
 TRADING_DAYS_PER_YEAR = 252
+ANNUAL_RISK_FREE_RATE = 0.0
+SHARPE_VOLATILITY_ABSOLUTE_TOLERANCE = 1e-12
 SPARSE_RETURN_WARNING_THRESHOLD = 60
 WEIGHT_SUM_TOLERANCE = 1e-6
 
@@ -181,6 +183,9 @@ def calculate_portfolio_analytics(
     All assets are assumed to use the same quote currency; no FX conversion is
     applied. Returns are computed only between consecutive shared price dates.
     Annualized volatility uses sample standard deviation times sqrt(252).
+    Annualized Sharpe ratio assumes a 0% annual risk-free rate and uses sample
+    standard deviation of daily excess returns. Daily volatilities at or below
+    1e-12 are treated as zero to avoid amplifying floating-point noise.
     """
     validated_weights = validate_portfolio_weights(weights)
     common_prices = _prepare_common_prices(prices, validated_weights)
@@ -206,13 +211,32 @@ def calculate_portfolio_analytics(
         returns: pd.Series,
         equity: pd.Series,
         drawdown: pd.Series,
-    ) -> tuple[float, float, float]:
+    ) -> tuple[float, float, float, float]:
         cumulative_return = float(equity.iloc[-1] - 1.0)
         annualized_volatility = float(
             returns.std(ddof=1) * math.sqrt(TRADING_DAYS_PER_YEAR)
         )
+        daily_risk_free_rate = (
+            (1.0 + ANNUAL_RISK_FREE_RATE) ** (1.0 / TRADING_DAYS_PER_YEAR) - 1.0
+        )
+        daily_excess_returns = returns - daily_risk_free_rate
+        daily_excess_volatility = float(daily_excess_returns.std(ddof=1))
+        annualized_sharpe_ratio = (
+            float(
+                daily_excess_returns.mean()
+                / daily_excess_volatility
+                * math.sqrt(TRADING_DAYS_PER_YEAR)
+            )
+            if daily_excess_volatility > SHARPE_VOLATILITY_ABSOLUTE_TOLERANCE
+            else math.nan
+        )
         maximum_drawdown = float(drawdown.min())
-        return cumulative_return, annualized_volatility, maximum_drawdown
+        return (
+            cumulative_return,
+            annualized_volatility,
+            annualized_sharpe_ratio,
+            maximum_drawdown,
+        )
 
     portfolio_metrics = metrics(portfolio_returns, portfolio_equity, portfolio_drawdown)
     equal_metrics = metrics(equal_weight_returns, equal_weight_equity, equal_weight_drawdown)
@@ -221,6 +245,7 @@ def calculate_portfolio_analytics(
         columns=[
             "Cumulative return",
             "Annualized volatility",
+            "Annualized Sharpe ratio",
             "Maximum drawdown",
         ],
         index=["Configured portfolio", "Equal weight"],

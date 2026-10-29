@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-The Streamlit interface and charts live in `app.py`. Keep reusable calculations in `quantlab/backtest.py` and price loading, normalization, and CSV fallback logic in `quantlab/data.py`. Add automated tests under `tests/`. Optional local price files belong in `data/` and use `<TICKER>.csv` with `date,adj_close` columns. Dependencies are listed in `requirements.txt`.
+The single-stock Streamlit app lives in `app.py`; additional pages belong in `pages/`. Keep reusable calculations in `quantlab/backtest.py` and `quantlab/portfolio.py`, and price loading, normalization, and CSV fallback logic in `quantlab/data.py`. Add automated tests under `tests/`. Optional local price files belong in `data/` and use `<TICKER>.csv` with `date,adj_close` columns. Dependencies are listed in `requirements.txt`.
 
 ## Build, Test, and Development Commands
 
@@ -18,11 +18,11 @@ Use Python 3.10 or newer, four spaces for indentation, `snake_case` for function
 
 ## Testing Guidelines
 
-Use pytest with files named `test_*.py`. Prefer small deterministic price series and temporary CSV files; tests should not depend on live Yahoo Finance data. Cover signal timing, insufficient history, transaction costs, cumulative returns, drawdown, and the local CSV fallback. No coverage threshold is currently configured.
+Use pytest with files named `test_*.py`. Prefer small deterministic price series and temporary CSV files; tests should not depend on live Yahoo Finance data. Cover signal timing, insufficient history, portfolio weights, common-date alignment, returns, volatility, drawdown, correlation, transaction costs, and the local CSV fallback. No coverage threshold is currently configured.
 
 ## Commit & Pull Request Guidelines
 
-There are no commits yet, so the repository has no established commit convention. Use concise imperative subjects, optionally prefixed by a type, such as `fix: align evaluation dates` or `docs: explain execution assumptions`. Pull requests should summarize the change, list test results, link a related issue when applicable, and include a screenshot for visible dashboard changes.
+An initial implementation commit exists, but no multi-commit convention is established. Use concise imperative subjects, optionally prefixed by a type, such as `fix: align evaluation dates` or `docs: explain execution assumptions`. Pull requests should summarize the change, list test results, link a related issue when applicable, and include a screenshot for visible dashboard changes.
 
 ## Security & Configuration
 

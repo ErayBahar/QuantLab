@@ -73,14 +73,50 @@ visible on the price chart. Buy-and-hold and the strategy use the same return
 dates, with buy-and-hold's initial position anchored at the prior close for the
 first evaluation return.
 
+## Portfolio analytics assumptions
+
+The Portfolio Analytics page loads adjusted closes for every selected ticker
+through Yahoo Finance, using the existing per-ticker local CSV fallback when
+needed. If any selected ticker cannot be loaded, the portfolio calculation
+stops and identifies that ticker; it does not silently drop an asset or alter
+the requested weights.
+
+The calculation joins adjusted prices on dates shared by all assets and does
+not forward-fill missing quotes. A date missing any asset is omitted for every
+asset, then returns are calculated between consecutive shared price dates. At
+least three shared price dates are required. Sparse overlap and intervals that
+span more than one weekday are flagged because an interval may cover multiple
+market sessions; exchange-specific holiday calendars are not modeled.
+
+Configured weights are long-only and must sum to 100% within a small
+floating-point tolerance. The portfolio is rebalanced to those weights at each
+shared valuation close for the next interval. The equal-weight benchmark is
+rebalanced on the same dates. Both results are gross of transaction costs,
+slippage, taxes, and cash interest.
+
+Annualized volatility is sample standard deviation of the shared-interval
+returns multiplied by the square root of 252. The app warns when fewer than 60
+shared return intervals are available or when common dates are irregular. The
+252-interval assumption may be approximate in those cases. Correlations use
+Pearson correlation on the same complete-case return matrix; undefined values,
+such as correlations for a constant-return asset, are shown as n/a.
+
+All selected assets are assumed to have the same quote currency. QuantLab does
+not convert prices or returns using foreign-exchange rates, so mixed-currency
+portfolios do not represent base-currency performance.
+
 ## Project layout
 
 - <code>app.py</code> — Streamlit controls, charts, and methodology notes.
+- <code>pages/1_Portfolio_Analytics.py</code> — Portfolio analytics inputs and
+  charts, while preserving the existing single-stock page.
 - <code>quantlab/data.py</code> — Yahoo Finance loading, adjusted-price normalization, and
   CSV fallback.
 - <code>quantlab/backtest.py</code> — Moving-average signals, backtest returns, transaction
   costs, cumulative equity, and drawdown metrics.
+- <code>quantlab/portfolio.py</code> — Portfolio weights, shared-date returns, benchmarks,
+  volatility, drawdown, and correlations.
 - <code>tests/</code> — Deterministic tests for price-source fallback, data sufficiency,
-  signal timing, costs, cumulative returns, and drawdown.
+  signal timing, portfolio weights and dates, returns, risk metrics, and correlation.
 - <code>data/</code> — Optional local fallback CSV files.
 
